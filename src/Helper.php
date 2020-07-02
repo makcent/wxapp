@@ -3,26 +3,15 @@
 
 namespace makcent\wxapp;
 
-
 use PHPUnit\Framework\Constraint\Count;
-use yii\base\Component;
+use yii\base\BaseObject;
 
-class Helper extends Component
+class Helper extends BaseObject
 {
-    protected static $APPID;
-    protected static $SECRET;
+    public $appid;
+    public $secret;
     protected static $ACCESS_TOKEN;
-
-    /**
-     * Helper constructor.
-     * @param $appid
-     * @param $secret
-     */
-    public function __construct($appid, $secret)
-    {
-        static::$APPID = $appid;
-        static::$SECRET= $secret;
-    }
+    public static $WX_HTTP = 'https://api.weixin.qq.com';
 
     /**
      * 调用实现方法
@@ -30,32 +19,31 @@ class Helper extends Component
      * @param $params
      * @return mixed
      */
-    public function call($method = '', $params)
+    public function call($method = '', array $params = [])
     {
         list($classname, $action) = explode('.', $method);
 
-        var_dump( explode('.', $method));
-        exit();
-
         $classname = "\\makcent\\wxapp\\{$classname}";
-        if ($this->hasMethod($classname, $action)) {
-            return call_user_func_array([new $classname(static::$APPID, static::$SECRET), $action], $params);
+        if (class_exists($classname)) {
+            return call_user_func_array([new $classname([
+                'appid' => $this->appid,
+                'secret' => $this->secret
+            ]), $action], $params);
         }
         return parent::__call($name, $params);
     }
 
     /**
      * 格式化微信小程序响应
-     * @param $response
+     * @param $json
      * @return array
      */
-    public static function policy($response)
+    public static function policy($json)
     {
-        $json = json_decode($response);
-        if ($json['errcode'] != 0) {
-            return static::ret(1, 'fail', $json);
+        if (!isset($json['errcode']) || $json['errcode'] != 0) {
+            return static::ret(1, 'fail', $json['result']);
         }
-        return static::ret(0, 'ok', $json);
+        return static::ret(0, 'ok', $json['result']);
 
     }
 
@@ -120,7 +108,7 @@ class Helper extends Component
                         $res = static::ret(1,'curl错误:' . curl_error($done['handle']));
                     }else{
                         $res = curl_multi_getcontent($done['handle']);
-                        $json = @json_decode($res, true);
+                        $json = json_decode($res, true);
                         $res = static::ret(0,'获取成功',is_array($json) ? $json : $res) ;
                     }
                 }
