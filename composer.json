@@ -1,6 +1,7 @@
 {
     "name": "makcent/wxapp",
     "description": "This is the server interface of wechat applet",
+	"license": "MIT",
     "authors": [
         {
             "name": "fuming",
